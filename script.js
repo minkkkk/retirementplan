@@ -67,7 +67,7 @@ function loadExampleScenario() {
     socialMonthly: 3200,
     socialStartAge: 67,
 
-    optStartAge: 45,
+    optStartAge: 50,
     optEndAge: 70,
     minimumEndAssets: 250000,
     safetyMargin: 500000,
