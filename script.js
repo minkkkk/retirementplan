@@ -2,22 +2,32 @@ let portfolioChartInstance = null;
 let balancesChartInstance = null;
 let incomeChartInstance = null;
 let lastOptimizationResult = null;
+const STORAGE_KEY = "retirementPlannerInputsV1";
 
 document.addEventListener("DOMContentLoaded", () => {
-  bindEvents();
-  loadExampleScenario();
+    bindEvents();
+
+  const restored = loadInputsFromStorage();
+  if (!restored) {
+    loadExampleScenario();
+  }
+
   runSimulation();
 });
 
 function bindEvents() {
   document.getElementById("runBtn").addEventListener("click", runSimulation);
+
   document.getElementById("exampleBtn").addEventListener("click", () => {
     loadExampleScenario();
+    saveInputsToStorage();
     runSimulation();
     clearOptimizationOutput();
   });
+
   document.getElementById("resetBtn").addEventListener("click", () => {
     resetForm();
+    clearStoredInputs();
     hideErrors();
     clearOutputs();
     clearOptimizationOutput();
@@ -25,6 +35,8 @@ function bindEvents() {
 
   document.getElementById("findRecommendedBtn").addEventListener("click", findRecommendedAge);
   document.getElementById("applyRecommendedBtn").addEventListener("click", applyRecommendedAge);
+
+  bindAutoSave();
 }
 
 function loadExampleScenario() {
@@ -66,10 +78,55 @@ function loadExampleScenario() {
     const el = document.getElementById(id);
     if (el) el.value = value;
   });
+
+  saveInputsToStorage();
 }
 
 function resetForm() {
   document.getElementById("planner-form").reset();
+}
+
+function bindAutoSave() {
+  const form = document.getElementById("planner-form");
+  const fields = form.querySelectorAll("input, select");
+
+  fields.forEach(field => {
+    field.addEventListener("input", saveInputsToStorage);
+    field.addEventListener("change", saveInputsToStorage);
+  });
+}
+
+function saveInputsToStorage() {
+  const form = document.getElementById("planner-form");
+  const fields = form.querySelectorAll("input, select");
+  const data = {};
+
+  fields.forEach(field => {
+    data[field.id] = field.value;
+  });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadInputsFromStorage() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+
+  try {
+    const data = JSON.parse(raw);
+    Object.entries(data).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = value;
+    });
+    return true;
+  } catch (error) {
+    console.error("Failed to load saved inputs:", error);
+    return false;
+  }
+}
+
+function clearStoredInputs() {
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 function getInputs() {
@@ -203,6 +260,7 @@ function validateOptimizationInputs(opt, baseInputs) {
 
 function runSimulation() {
   hideErrors();
+  saveInputsToStorage();
 
   const inputs = getInputs();
   const errors = validateInputs(inputs);
@@ -383,6 +441,7 @@ function getPlanStatus(lastRow, firstShortfallRow, depletionRow) {
 function findRecommendedAge() {
   hideOptimizationErrors();
   clearOptimizationOutput();
+  saveInputsToStorage();
 
   const baseInputs = getInputs();
   const baseErrors = validateInputs(baseInputs);
@@ -399,6 +458,7 @@ function findRecommendedAge() {
   }
 
   const candidates = [];
+
   for (let retirementAge = opt.startAge; retirementAge <= opt.endAge; retirementAge++) {
     const testInputs = {
       ...baseInputs,
@@ -525,9 +585,11 @@ function getMethodLabel(method) {
 
 function clearOptimizationOutput() {
   lastOptimizationResult = null;
-  const container = document.getElementById("optimizationResult");
-  container.innerHTML = "";
-  container.classList.add("hidden");
+
+  const resultContainer = document.getElementById("optimizationResult");
+  resultContainer.innerHTML = "";
+  resultContainer.classList.add("hidden");
+
   hideOptimizationErrors();
 }
 
