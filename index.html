@@ -19,9 +19,9 @@
     <section class="card intro-card">
       <h2>How it works</h2>
       <p>
-        Enter your current balances, contribution amounts, retirement ages, pension and Social Security details,
-        and annual spending goal. This planner simulates each year through age 100 and automatically funds any
-        retirement spending gap using withdrawals in this order:
+        Enter your balances, contribution amounts, retirement assumptions, pension and Social Security details,
+        and annual retirement spending goal. This planner simulates each year through age 100 and automatically
+        funds any retirement spending gap using withdrawals in this order:
         <strong>Brokerage → IRA → 401(k)</strong>.
       </p>
     </section>
@@ -45,7 +45,7 @@
                 <input type="number" id="endAge" min="1" max="120" step="1" />
               </label>
               <label>
-                Annual Spending Goal ($)
+                Annual Retirement Spending Goal ($)
                 <input type="number" id="annualSpendingGoal" min="0" step="1000" />
               </label>
             </div>
@@ -140,6 +140,52 @@
           </section>
 
           <section class="card form-section">
+            <h2>Retirement Age Optimization</h2>
+            <div class="grid two-col">
+              <label>
+                Test Ages From
+                <input type="number" id="optStartAge" min="0" max="120" step="1" />
+              </label>
+              <label>
+                Test Ages To
+                <input type="number" id="optEndAge" min="0" max="120" step="1" />
+              </label>
+              <label>
+                Minimum Assets at End Age ($)
+                <input type="number" id="minimumEndAssets" min="0" step="1000" />
+              </label>
+              <label>
+                Safety Margin at End Age ($)
+                <input type="number" id="safetyMargin" min="0" step="1000" />
+              </label>
+              <label class="full-width">
+                Recommendation Method
+                <select id="optimizationMethod">
+                  <option value="earliest_feasible">Earliest feasible</option>
+                  <option value="max_end_assets">Maximum end assets</option>
+                  <option value="min_end_assets">Earliest meeting minimum end assets</option>
+                  <option value="safety_margin">Recommended with safety margin</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="withdrawal-note">
+              <p><strong>Earliest feasible:</strong> first age with no shortfall and no depletion.</p>
+              <p><strong>Maximum end assets:</strong> age that leaves the most assets at end age.</p>
+              <p><strong>Minimum end assets:</strong> first age meeting your required ending assets.</p>
+              <p><strong>Safety margin:</strong> first age with no shortfall, no depletion, and ending assets above your safety target.</p>
+            </div>
+
+            <div class="actions">
+              <button type="button" id="findRecommendedBtn" class="btn primary">Find Recommended Age</button>
+              <button type="button" id="applyRecommendedBtn" class="btn secondary">Apply Recommended Age</button>
+            </div>
+
+            <div id="optimizationErrorBox" class="error-box hidden"></div>
+            <div id="optimizationResult" class="optimization-result hidden"></div>
+          </section>
+
+          <section class="card form-section">
             <h2>Withdrawal Strategy</h2>
             <div class="withdrawal-note">
               <p><strong>Default withdrawal order:</strong> Brokerage → IRA → 401(k)</p>
@@ -179,7 +225,7 @@
         </section>
 
         <section class="card">
-          <h2>Income vs Spending</h2>
+          <h2>Guaranteed Income vs Withdrawals vs Retirement Spending</h2>
           <div class="chart-wrap">
             <canvas id="incomeChart"></canvas>
           </div>

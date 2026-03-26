@@ -82,6 +82,10 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.full-width {
+  grid-column: 1 / -1;
+}
+
 label {
   display: flex;
   flex-direction: column;
@@ -90,7 +94,8 @@ label {
   font-weight: 600;
 }
 
-input {
+input,
+select {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -101,7 +106,8 @@ input {
   color: var(--text);
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
 }
@@ -195,6 +201,44 @@ input:focus {
   color: #b91c1c;
 }
 
+.optimization-result {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.optimization-result h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 1rem;
+}
+
+.optimization-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.optimization-metric {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: white;
+}
+
+.optimization-metric .label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.optimization-metric .value {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .chart-wrap {
   position: relative;
   min-height: 320px;
@@ -255,7 +299,8 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
-  .summary-grid {
+  .summary-grid,
+  .optimization-result-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -266,7 +311,8 @@ tbody tr:hover {
   }
 
   .two-col,
-  .summary-grid {
+  .summary-grid,
+  .optimization-result-grid {
     grid-template-columns: 1fr;
   }
 

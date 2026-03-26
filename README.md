@@ -1,90 +1,61 @@
 # Retirement Planner
 
-A simple single-person retirement planning simulator built as a static website for GitHub Pages.
+A single-person retirement planning simulator built as a static website for GitHub Pages.
 
-## What it does
+## Features
 
-This tool simulates retirement finances from your current age through age 100.
-
-You can enter:
-
-- current age
-- retirement age
-- end age
-- annual spending goal
-- 401(k) balance, contribution, and growth rates
-- IRA balance, contribution, and growth rates
-- brokerage balance, contribution, and growth rates
-- monthly pension amount and start age
-- monthly Social Security amount and start age
-
-The planner then estimates:
-
-- portfolio value by age
-- account balances by age
-- retirement income from pension and Social Security
-- automatic withdrawals needed to fund your spending goal
-- first shortfall age
-- depletion age
-- assets remaining at the end of the plan
-
----
+- annual retirement simulation through age 100
+- 401(k), IRA, and brokerage accounts
+- separate pre-retirement and post-retirement growth assumptions
+- pension and Social Security income
+- automatic retirement withdrawals to fund spending gap
+- summary cards
+- charts and year-by-year results table
+- retirement age optimization using grid search
 
 ## Version 1 assumptions
 
-This version is intentionally simple.
-
-### Core assumptions
-
 - one person only
 - all values are in USD
-- simulation runs annually
-- default planning horizon ends at age 100
+- annual simulation
 - contributions stop at retirement age
-- each account has separate growth assumptions before and after retirement
-- retirement spending gap is automatically funded after guaranteed income
-- withdrawal order is:
+- spending goal applies only after retirement
+- guaranteed income = pension + Social Security
+- withdrawal order = Brokerage → IRA → 401(k)
+- taxes and inflation are not included
 
-1. Brokerage
-2. IRA
-3. 401(k)
+## Retirement age optimization
 
-### Not included in version 1
+This app uses a simple grid search across a user-defined retirement age range.
 
-- taxes
-- inflation
-- RMDs
-- Roth conversions
-- healthcare costs
-- one-time expenses
-- Monte Carlo simulation
-- custom withdrawal order
+For each candidate retirement age, the planner runs the full simulation and then selects a recommendation based on one of these methods:
 
----
+- Earliest feasible
+- Maximum end assets
+- Earliest meeting minimum end assets
+- Recommended with safety margin
+
+### Definitions
+
+- **Feasible**: no shortfall and no depletion before end age
+- **Minimum end assets**: user-defined target remaining at end age
+- **Safety margin**: user-defined larger cushion at end age
 
 ## Calculation flow
 
 ### Before retirement
-For each year before retirement:
-
 1. start with current balances
 2. add annual contributions
-3. apply pre-retirement growth rate
-4. no retirement withdrawals are taken
+3. apply pre-retirement growth
+4. no retirement withdrawals
 
 ### After retirement
-For each year after retirement:
-
 1. start with current balances
-2. contributions are set to 0
-3. apply post-retirement growth rate
-4. calculate pension and Social Security income if started
-5. compare guaranteed income to annual spending goal
-6. withdraw any remaining gap from Brokerage → IRA → 401(k)
-
-If total funds are not enough to cover the spending goal, the remaining unmet amount is shown as a shortfall.
-
----
+2. contributions become 0
+3. apply post-retirement growth
+4. calculate pension and Social Security
+5. compare guaranteed income to annual retirement spending goal
+6. withdraw the gap from Brokerage → IRA → 401(k)
 
 ## File structure
 

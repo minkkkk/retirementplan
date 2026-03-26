@@ -1,6 +1,7 @@
 let portfolioChartInstance = null;
 let balancesChartInstance = null;
 let incomeChartInstance = null;
+let lastOptimizationResult = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   bindEvents();
@@ -13,12 +14,17 @@ function bindEvents() {
   document.getElementById("exampleBtn").addEventListener("click", () => {
     loadExampleScenario();
     runSimulation();
+    clearOptimizationOutput();
   });
   document.getElementById("resetBtn").addEventListener("click", () => {
     resetForm();
     hideErrors();
     clearOutputs();
+    clearOptimizationOutput();
   });
+
+  document.getElementById("findRecommendedBtn").addEventListener("click", findRecommendedAge);
+  document.getElementById("applyRecommendedBtn").addEventListener("click", applyRecommendedAge);
 }
 
 function loadExampleScenario() {
@@ -47,7 +53,13 @@ function loadExampleScenario() {
     pensionStartAge: 65,
 
     socialMonthly: 3200,
-    socialStartAge: 67
+    socialStartAge: 67,
+
+    optStartAge: 45,
+    optEndAge: 70,
+    minimumEndAssets: 250000,
+    safetyMargin: 500000,
+    optimizationMethod: "safety_margin"
   };
 
   Object.entries(defaults).forEach(([id, value]) => {
@@ -105,30 +117,38 @@ function getInputs() {
   };
 }
 
+function getOptimizationInputs(baseInputs) {
+  return {
+    startAge: getNumber("optStartAge"),
+    endAge: getNumber("optEndAge"),
+    minimumEndAssets: getNumber("minimumEndAssets"),
+    safetyMargin: getNumber("safetyMargin"),
+    method: document.getElementById("optimizationMethod").value,
+    currentAge: baseInputs.currentAge,
+    planningEndAge: baseInputs.endAge
+  };
+}
+
 function validateInputs(inputs) {
   const errors = [];
 
   if (inputs.currentAge < 0 || inputs.currentAge > 120) {
     errors.push("Current age must be between 0 and 120.");
   }
-
   if (inputs.retirementAge <= inputs.currentAge) {
     errors.push("Retirement age must be greater than current age.");
   }
-
   if (inputs.endAge < inputs.retirementAge) {
     errors.push("End age must be greater than or equal to retirement age.");
   }
-
   if (inputs.endAge > 120) {
     errors.push("End age must be 120 or less.");
   }
-
   if (inputs.annualSpendingGoal < 0) {
-    errors.push("Annual spending goal cannot be negative.");
+    errors.push("Annual retirement spending goal cannot be negative.");
   }
 
-  for (const [key, account] of Object.entries(inputs.accounts)) {
+  for (const account of Object.values(inputs.accounts)) {
     if (account.balance < 0) {
       errors.push(`${account.name} balance cannot be negative.`);
     }
@@ -146,17 +166,36 @@ function validateInputs(inputs) {
   if (inputs.pension.monthlyAmount < 0) {
     errors.push("Monthly pension cannot be negative.");
   }
-
   if (inputs.social.monthlyAmount < 0) {
     errors.push("Monthly Social Security cannot be negative.");
   }
-
   if (inputs.pension.startAge < inputs.currentAge) {
     errors.push("Pension start age must be at least current age.");
   }
-
   if (inputs.social.startAge < inputs.currentAge) {
     errors.push("Social Security start age must be at least current age.");
+  }
+
+  return errors;
+}
+
+function validateOptimizationInputs(opt, baseInputs) {
+  const errors = [];
+
+  if (opt.startAge <= baseInputs.currentAge) {
+    errors.push("Test Ages From must be greater than current age.");
+  }
+  if (opt.endAge < opt.startAge) {
+    errors.push("Test Ages To must be greater than or equal to Test Ages From.");
+  }
+  if (opt.endAge > baseInputs.endAge) {
+    errors.push("Test Ages To should not be greater than End Age.");
+  }
+  if (opt.minimumEndAssets < 0) {
+    errors.push("Minimum assets at end age cannot be negative.");
+  }
+  if (opt.safetyMargin < 0) {
+    errors.push("Safety margin cannot be negative.");
   }
 
   return errors;
@@ -178,7 +217,7 @@ function runSimulation() {
   const summary = buildSummary(rows, inputs);
 
   renderSummary(summary);
-  renderCharts(rows, inputs);
+  renderCharts(rows);
   renderTable(rows);
 }
 
@@ -312,9 +351,7 @@ function buildSummary(rows, inputs) {
     firstRow.startBalances.ira +
     firstRow.startBalances.brokerage;
 
-  const guaranteedIncomeAtRetirement = retirementRow
-    ? retirementRow.income.guaranteed
-    : 0;
+  const guaranteedIncomeAtRetirement = retirementRow ? retirementRow.income.guaranteed : 0;
 
   const status = getPlanStatus(lastRow, firstShortfallRow, depletionRow);
 
@@ -334,16 +371,176 @@ function getPlanStatus(lastRow, firstShortfallRow, depletionRow) {
   if (depletionRow) {
     return { text: "Warning: Assets depleted before end age", className: "status-bad" };
   }
-
   if (firstShortfallRow) {
     return { text: "Warning: Spending goal not fully met in some years", className: "status-warning" };
   }
-
   if (lastRow.totalAssetsEnd > 0) {
     return { text: "On Track through end age", className: "status-good" };
   }
-
   return { text: "Needs review", className: "status-warning" };
+}
+
+function findRecommendedAge() {
+  hideOptimizationErrors();
+  clearOptimizationOutput();
+
+  const baseInputs = getInputs();
+  const baseErrors = validateInputs(baseInputs);
+  if (baseErrors.length > 0) {
+    showOptimizationErrors(["Please fix the main input errors before running optimization."]);
+    return;
+  }
+
+  const opt = getOptimizationInputs(baseInputs);
+  const optErrors = validateOptimizationInputs(opt, baseInputs);
+  if (optErrors.length > 0) {
+    showOptimizationErrors(optErrors);
+    return;
+  }
+
+  const candidates = [];
+  for (let retirementAge = opt.startAge; retirementAge <= opt.endAge; retirementAge++) {
+    const testInputs = {
+      ...baseInputs,
+      retirementAge
+    };
+
+    const rows = simulatePlan(testInputs);
+    const summary = buildSummary(rows, testInputs);
+    const lastRow = rows[rows.length - 1];
+
+    const feasible = summary.firstShortfallAge === "None" && summary.depletionAge === "None";
+    const meetsMinEndAssets = lastRow.totalAssetsEnd >= opt.minimumEndAssets;
+    const meetsSafetyMargin = lastRow.totalAssetsEnd >= opt.safetyMargin;
+
+    candidates.push({
+      retirementAge,
+      feasible,
+      meetsMinEndAssets,
+      meetsSafetyMargin,
+      endAssets: lastRow.totalAssetsEnd,
+      firstShortfallAge: summary.firstShortfallAge,
+      depletionAge: summary.depletionAge,
+      summary
+    });
+  }
+
+  const recommended = chooseRecommendedCandidate(candidates, opt.method);
+
+  if (!recommended) {
+    showOptimizationErrors([
+      "No retirement age in the selected range matched the chosen recommendation method."
+    ]);
+    lastOptimizationResult = null;
+    return;
+  }
+
+  lastOptimizationResult = {
+    recommendedAge: recommended.retirementAge,
+    method: opt.method,
+    candidate: recommended,
+    candidateCount: candidates.length
+  };
+
+  renderOptimizationResult(recommended, opt.method);
+}
+
+function chooseRecommendedCandidate(candidates, method) {
+  if (method === "earliest_feasible") {
+    return candidates.find(c => c.feasible) || null;
+  }
+
+  if (method === "max_end_assets") {
+    const valid = [...candidates].sort((a, b) => b.endAssets - a.endAssets);
+    return valid[0] || null;
+  }
+
+  if (method === "min_end_assets") {
+    return candidates.find(c => c.feasible && c.meetsMinEndAssets) || null;
+  }
+
+  if (method === "safety_margin") {
+    return candidates.find(c => c.feasible && c.meetsSafetyMargin) || null;
+  }
+
+  return null;
+}
+
+function applyRecommendedAge() {
+  if (!lastOptimizationResult) {
+    showOptimizationErrors(["Run optimization first before applying a recommended age."]);
+    return;
+  }
+
+  document.getElementById("retirementAge").value = lastOptimizationResult.recommendedAge;
+  runSimulation();
+}
+
+function renderOptimizationResult(candidate, method) {
+  const container = document.getElementById("optimizationResult");
+  const methodLabel = getMethodLabel(method);
+
+  container.innerHTML = `
+    <h3>Optimization Result</h3>
+    <div class="optimization-result-grid">
+      <div class="optimization-metric">
+        <div class="label">Recommendation Method</div>
+        <div class="value">${escapeHtml(methodLabel)}</div>
+      </div>
+      <div class="optimization-metric">
+        <div class="label">Recommended Retirement Age</div>
+        <div class="value">${escapeHtml(String(candidate.retirementAge))}</div>
+      </div>
+      <div class="optimization-metric">
+        <div class="label">Assets Remaining at End Age</div>
+        <div class="value">${escapeHtml(formatCurrency(candidate.endAssets))}</div>
+      </div>
+      <div class="optimization-metric">
+        <div class="label">First Shortfall Age</div>
+        <div class="value">${escapeHtml(String(candidate.firstShortfallAge))}</div>
+      </div>
+      <div class="optimization-metric">
+        <div class="label">Depletion Age</div>
+        <div class="value">${escapeHtml(String(candidate.depletionAge))}</div>
+      </div>
+      <div class="optimization-metric">
+        <div class="label">Feasible</div>
+        <div class="value">${candidate.feasible ? "Yes" : "No"}</div>
+      </div>
+    </div>
+  `;
+
+  container.classList.remove("hidden");
+}
+
+function getMethodLabel(method) {
+  const labels = {
+    earliest_feasible: "Earliest feasible",
+    max_end_assets: "Maximum end assets",
+    min_end_assets: "Earliest meeting minimum end assets",
+    safety_margin: "Recommended with safety margin"
+  };
+  return labels[method] || method;
+}
+
+function clearOptimizationOutput() {
+  lastOptimizationResult = null;
+  const container = document.getElementById("optimizationResult");
+  container.innerHTML = "";
+  container.classList.add("hidden");
+  hideOptimizationErrors();
+}
+
+function showOptimizationErrors(errors) {
+  const box = document.getElementById("optimizationErrorBox");
+  box.innerHTML = errors.map(err => `<div>• ${escapeHtml(err)}</div>`).join("");
+  box.classList.remove("hidden");
+}
+
+function hideOptimizationErrors() {
+  const box = document.getElementById("optimizationErrorBox");
+  box.innerHTML = "";
+  box.classList.add("hidden");
 }
 
 function renderSummary(summary) {
@@ -353,26 +550,22 @@ function renderSummary(summary) {
     { label: "Total Assets Today", value: formatCurrency(summary.totalAssetsToday) },
     { label: "Portfolio at Retirement", value: formatCurrency(summary.portfolioAtRetirement) },
     { label: "Assets Remaining at End Age", value: formatCurrency(summary.assetsRemainingAtEnd) },
-    { label: "Annual Spending Goal", value: formatCurrency(summary.annualSpendingGoal) },
+    { label: "Annual Retirement Spending Goal", value: formatCurrency(summary.annualSpendingGoal) },
     { label: "Guaranteed Income at Retirement", value: formatCurrency(summary.guaranteedIncomeAtRetirement) },
     { label: "First Shortfall Age", value: summary.firstShortfallAge },
     { label: "Depletion Age", value: summary.depletionAge },
     { label: "Plan Status", value: summary.status.text, className: summary.status.className }
   ];
 
-  container.innerHTML = cards
-    .map(card => {
-      return `
-        <div class="summary-card ${card.className || ""}">
-          <div class="label">${escapeHtml(card.label)}</div>
-          <div class="value">${escapeHtml(String(card.value))}</div>
-        </div>
-      `;
-    })
-    .join("");
+  container.innerHTML = cards.map(card => `
+    <div class="summary-card ${card.className || ""}">
+      <div class="label">${escapeHtml(card.label)}</div>
+      <div class="value">${escapeHtml(String(card.value))}</div>
+    </div>
+  `).join("");
 }
 
-function renderCharts(rows, inputs) {
+function renderCharts(rows) {
   const ages = rows.map(row => row.age);
   const totalPortfolio = rows.map(row => roundMoney(row.totalAssetsEnd));
   const k401Data = rows.map(row => roundMoney(row.endBalances.k401));
@@ -406,21 +599,9 @@ function renderCharts(rows, inputs) {
     data: {
       labels: ages,
       datasets: [
-        {
-          label: "401(k)",
-          data: k401Data,
-          tension: 0.25
-        },
-        {
-          label: "IRA",
-          data: iraData,
-          tension: 0.25
-        },
-        {
-          label: "Brokerage",
-          data: brokerageData,
-          tension: 0.25
-        }
+        { label: "401(k)", data: k401Data, tension: 0.25 },
+        { label: "IRA", data: iraData, tension: 0.25 },
+        { label: "Brokerage", data: brokerageData, tension: 0.25 }
       ]
     },
     options: getCurrencyChartOptions("Account Balance ($)")
@@ -431,21 +612,9 @@ function renderCharts(rows, inputs) {
     data: {
       labels: ages,
       datasets: [
-        {
-          label: "Guaranteed Income",
-          data: guaranteedIncome,
-          tension: 0.25
-        },
-        {
-          label: "Withdrawals",
-          data: withdrawals,
-          tension: 0.25
-        },
-        {
-          label: "Spending Goal",
-          data: spendingGoal,
-          tension: 0.25
-        }
+        { label: "Guaranteed Income", data: guaranteedIncome, tension: 0.25 },
+        { label: "Withdrawals", data: withdrawals, tension: 0.25 },
+        { label: "Retirement Spending Goal", data: spendingGoal, tension: 0.25 }
       ]
     },
     options: getCurrencyChartOptions("Annual Amount ($)")
@@ -497,31 +666,27 @@ function getCurrencyChartOptions(yAxisLabel) {
 function renderTable(rows) {
   const tbody = document.getElementById("resultsTableBody");
 
-  tbody.innerHTML = rows
-    .map(row => {
-      return `
-        <tr>
-          <td>${row.age}</td>
-          <td>${formatCurrency(row.startBalances.k401)}</td>
-          <td>${formatCurrency(row.startBalances.ira)}</td>
-          <td>${formatCurrency(row.startBalances.brokerage)}</td>
-          <td>${formatCurrency(row.income.pension)}</td>
-          <td>${formatCurrency(row.income.social)}</td>
-          <td>${formatCurrency(row.income.guaranteed)}</td>
-          <td>${formatCurrency(row.spendingGoal)}</td>
-          <td>${formatCurrency(row.withdrawals.brokerage)}</td>
-          <td>${formatCurrency(row.withdrawals.ira)}</td>
-          <td>${formatCurrency(row.withdrawals.k401)}</td>
-          <td>${formatCurrency(row.withdrawals.total)}</td>
-          <td>${formatCurrency(row.shortfall)}</td>
-          <td>${formatCurrency(row.endBalances.k401)}</td>
-          <td>${formatCurrency(row.endBalances.ira)}</td>
-          <td>${formatCurrency(row.endBalances.brokerage)}</td>
-          <td>${formatCurrency(row.totalAssetsEnd)}</td>
-        </tr>
-      `;
-    })
-    .join("");
+  tbody.innerHTML = rows.map(row => `
+    <tr>
+      <td>${row.age}</td>
+      <td>${formatCurrency(row.startBalances.k401)}</td>
+      <td>${formatCurrency(row.startBalances.ira)}</td>
+      <td>${formatCurrency(row.startBalances.brokerage)}</td>
+      <td>${formatCurrency(row.income.pension)}</td>
+      <td>${formatCurrency(row.income.social)}</td>
+      <td>${formatCurrency(row.income.guaranteed)}</td>
+      <td>${formatCurrency(row.spendingGoal)}</td>
+      <td>${formatCurrency(row.withdrawals.brokerage)}</td>
+      <td>${formatCurrency(row.withdrawals.ira)}</td>
+      <td>${formatCurrency(row.withdrawals.k401)}</td>
+      <td>${formatCurrency(row.withdrawals.total)}</td>
+      <td>${formatCurrency(row.shortfall)}</td>
+      <td>${formatCurrency(row.endBalances.k401)}</td>
+      <td>${formatCurrency(row.endBalances.ira)}</td>
+      <td>${formatCurrency(row.endBalances.brokerage)}</td>
+      <td>${formatCurrency(row.totalAssetsEnd)}</td>
+    </tr>
+  `).join("");
 }
 
 function clearOutputs() {
