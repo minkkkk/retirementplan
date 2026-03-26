@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retirement Planner</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>Retirement Planner</h1>
+      <p class="subtitle">Single-person retirement simulation through age 100</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card intro-card">
+      <h2>How it works</h2>
+      <p>
+        Enter your current balances, contribution amounts, retirement ages, pension and Social Security details,
+        and annual spending goal. This planner simulates each year through age 100 and automatically funds any
+        retirement spending gap using withdrawals in this order:
+        <strong>Brokerage → IRA → 401(k)</strong>.
+      </p>
+    </section>
+
+    <section class="input-layout">
+      <div class="left-panel">
+        <form id="planner-form">
+          <section class="card form-section">
+            <h2>Personal</h2>
+            <div class="grid two-col">
+              <label>
+                Current Age
+                <input type="number" id="currentAge" min="0" max="120" step="1" />
+              </label>
+              <label>
+                Retirement Age
+                <input type="number" id="retirementAge" min="0" max="120" step="1" />
+              </label>
+              <label>
+                End Age
+                <input type="number" id="endAge" min="1" max="120" step="1" />
+              </label>
+              <label>
+                Annual Spending Goal ($)
+                <input type="number" id="annualSpendingGoal" min="0" step="1000" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card form-section">
+            <h2>401(k)</h2>
+            <div class="grid two-col">
+              <label>
+                Current Balance ($)
+                <input type="number" id="k401Balance" min="0" step="1000" />
+              </label>
+              <label>
+                Annual Contribution ($)
+                <input type="number" id="k401Contribution" min="0" step="500" />
+              </label>
+              <label>
+                Growth Rate Before Retirement (%)
+                <input type="number" id="k401PreGrowth" step="0.1" />
+              </label>
+              <label>
+                Growth Rate After Retirement (%)
+                <input type="number" id="k401PostGrowth" step="0.1" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card form-section">
+            <h2>IRA</h2>
+            <div class="grid two-col">
+              <label>
+                Current Balance ($)
+                <input type="number" id="iraBalance" min="0" step="1000" />
+              </label>
+              <label>
+                Annual Contribution ($)
+                <input type="number" id="iraContribution" min="0" step="500" />
+              </label>
+              <label>
+                Growth Rate Before Retirement (%)
+                <input type="number" id="iraPreGrowth" step="0.1" />
+              </label>
+              <label>
+                Growth Rate After Retirement (%)
+                <input type="number" id="iraPostGrowth" step="0.1" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card form-section">
+            <h2>Brokerage</h2>
+            <div class="grid two-col">
+              <label>
+                Current Balance ($)
+                <input type="number" id="brokerageBalance" min="0" step="1000" />
+              </label>
+              <label>
+                Annual Contribution ($)
+                <input type="number" id="brokerageContribution" min="0" step="500" />
+              </label>
+              <label>
+                Growth Rate Before Retirement (%)
+                <input type="number" id="brokeragePreGrowth" step="0.1" />
+              </label>
+              <label>
+                Growth Rate After Retirement (%)
+                <input type="number" id="brokeragePostGrowth" step="0.1" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card form-section">
+            <h2>Pension & Social Security</h2>
+            <div class="grid two-col">
+              <label>
+                Monthly Pension ($)
+                <input type="number" id="pensionMonthly" min="0" step="100" />
+              </label>
+              <label>
+                Pension Start Age
+                <input type="number" id="pensionStartAge" min="0" max="120" step="1" />
+              </label>
+              <label>
+                Monthly Social Security ($)
+                <input type="number" id="socialMonthly" min="0" step="100" />
+              </label>
+              <label>
+                Social Security Start Age
+                <input type="number" id="socialStartAge" min="0" max="120" step="1" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card form-section">
+            <h2>Withdrawal Strategy</h2>
+            <div class="withdrawal-note">
+              <p><strong>Default withdrawal order:</strong> Brokerage → IRA → 401(k)</p>
+              <p>Retirement spending gap is automatically funded after pension and Social Security income.</p>
+              <p>Contributions stop at retirement age.</p>
+            </div>
+          </section>
+
+          <section class="actions">
+            <button type="button" id="runBtn" class="btn primary">Run Simulation</button>
+            <button type="button" id="exampleBtn" class="btn">Load Example</button>
+            <button type="button" id="resetBtn" class="btn secondary">Reset</button>
+          </section>
+
+          <div id="errorBox" class="error-box hidden"></div>
+        </form>
+      </div>
+
+      <div class="right-panel">
+        <section class="card">
+          <h2>Summary</h2>
+          <div id="summaryCards" class="summary-grid"></div>
+        </section>
+
+        <section class="card">
+          <h2>Total Portfolio by Age</h2>
+          <div class="chart-wrap">
+            <canvas id="portfolioChart"></canvas>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Account Balances by Age</h2>
+          <div class="chart-wrap">
+            <canvas id="balancesChart"></canvas>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Income vs Spending</h2>
+          <div class="chart-wrap">
+            <canvas id="incomeChart"></canvas>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="card results-section">
+      <div class="results-header">
+        <h2>Year-by-Year Results</h2>
+      </div>
+      <div class="table-wrap">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Age</th>
+              <th>401(k) Start</th>
+              <th>IRA Start</th>
+              <th>Brokerage Start</th>
+              <th>Pension</th>
+              <th>Social</th>
+              <th>Guaranteed Income</th>
+              <th>Spending Goal</th>
+              <th>Brokerage Withdrawal</th>
+              <th>IRA Withdrawal</th>
+              <th>401(k) Withdrawal</th>
+              <th>Total Withdrawal</th>
+              <th>Shortfall</th>
+              <th>401(k) End</th>
+              <th>IRA End</th>
+              <th>Brokerage End</th>
+              <th>Total Assets End</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Built for GitHub Pages • All amounts shown in USD • Version 1 excludes taxes and inflation</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
