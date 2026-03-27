@@ -1,67 +1,68 @@
 # Retirement Planner
 
-A single-person retirement planning simulator built as a static website for GitHub Pages.
+A household retirement planning simulator built as a static web app (GitHub Pages compatible).
 
-## Features
+This tool models long-term financial outcomes for single individuals or couples, including retirement timing, investment growth, guaranteed income, and optional child-related expenses.
 
-- annual retirement simulation through age 100
-- 401(k), IRA, and brokerage accounts
-- separate pre-retirement and post-retirement growth assumptions
-- pension and Social Security income
-- automatic retirement withdrawals to fund spending gap
-- summary cards
-- charts and year-by-year results table
-- retirement age optimization using grid search
+---
 
-## Version 1 assumptions
+## 🚀 Features
 
-- one person only
-- all values are in USD
-- annual simulation
-- contributions stop at retirement age
-- spending goal applies only after retirement
-- guaranteed income = pension + Social Security
-- withdrawal order = Brokerage → IRA → 401(k)
-- taxes and inflation are not included
+- Annual retirement simulation through a selected end age
+- Supports **single or couple households**
+- Accounts:
+  - 401(k)
+  - IRA
+  - Brokerage
+- Separate **pre-retirement and post-retirement growth rates**
+- **Pension + Social Security income**
+- **Inflation-adjusted retirement spending**
+- Optional **child-related costs**
+  - College (4-year default)
+  - Wedding support
+- Retirement age optimization (grid search)
+- Summary dashboard + charts + detailed yearly table
+- Local storage (auto-save inputs)
 
-## Retirement age optimization
+---
 
-This app uses a simple grid search across a user-defined retirement age range.
+## 🧠 Core Model Assumptions
 
-For each candidate retirement age, the planner runs the full simulation and then selects a recommendation based on one of these methods:
+### 1. Retirement Definition
 
-- Earliest feasible
-- Maximum end assets
-- Earliest meeting minimum end assets
-- Recommended with safety margin
+Retirement age is the point where:
 
-### Definitions
+- Contributions **stop**
+- Retirement spending **begins**
 
-- **Feasible**: no shortfall and no depletion before end age
-- **Minimum end assets**: user-defined target remaining at end age
-- **Safety margin**: user-defined larger cushion at end age
+---
 
-## Calculation flow
+### 2. Inflation Model
 
-### Before retirement
-1. start with current balances
-2. add annual contributions
-3. apply pre-retirement growth
-4. no retirement withdrawals
+- The **Annual Retirement Spending Goal** is entered in **today’s dollars**
+- At retirement:
+  - Spending is inflated to future value
+- After retirement:
+  - Spending increases each year with inflation
 
-### After retirement
-1. start with current balances
-2. contributions become 0
-3. apply post-retirement growth
-4. calculate pension and Social Security
-5. compare guaranteed income to annual retirement spending goal
-6. withdraw the gap from Brokerage → IRA → 401(k)
+---
 
-## File structure
+### 3. Contribution Rules
+
+| Phase | 401(k) | IRA | Brokerage |
+|------|--------|-----|-----------|
+| Before retirement | Contribute | Contribute | Contribute |
+| After retirement | ❌ Stop | ❌ Stop | ❌ Stop |
+
+Applied separately to:
+- Primary
+- Spouse
+
+---
+
+### 4. Withdrawal Order
+
+Withdrawals follow a strict order:
 
 ```text
-retirement-planner/
-├─ index.html
-├─ style.css
-├─ script.js
-└─ README.md
+Brokerage → IRA → 401(k)

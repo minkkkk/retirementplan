@@ -11,7 +11,7 @@
   <header class="site-header">
     <div class="container">
       <h1>Retirement Planner</h1>
-      <p class="subtitle">Single-person retirement simulation through age 100</p>
+      <p class="subtitle">Household retirement simulation with couple + children support</p>
     </div>
   </header>
 
@@ -19,218 +19,366 @@
     <section class="card intro-card">
       <h2>How it works</h2>
       <p>
-        Enter your balances, contribution amounts, retirement assumptions, pension and Social Security details,
-        and annual retirement spending goal. This planner simulates each year through age 100 and automatically
-        funds any retirement spending gap using withdrawals in this order:
-        <strong>Brokerage → IRA → 401(k)</strong>.
+        Enter household balances, contributions, retirement assumptions, pension and Social Security details,
+        plus optional child college and wedding support. Retirement age means both:
+        <strong>contributions stop</strong> and <strong>retirement spending starts</strong>.
+        Withdrawals follow:
+        <strong>Brokerage → IRA → 401(k)</strong>, and 401(k) is only available from age 60 in this model.
       </p>
     </section>
 
-    <section class="input-layout">
-      <div class="left-panel">
-        <form id="planner-form">
+    <section class="stack-layout">
+      <form id="planner-form">
+        <section class="card form-section">
+          <h2>Household</h2>
+          <div class="grid compact-two">
+            <label>
+              Household Type
+              <select id="householdType">
+                <option value="single">Single</option>
+                <option value="couple">Couple</option>
+              </select>
+            </label>
+            <label>
+              Number of Children
+              <input type="number" id="childrenCount" min="0" max="10" step="1" value="0" />
+            </label>
+          </div>
+        </section>
+
+        <div class="dual-grid">
           <section class="card form-section">
-            <h2>Personal</h2>
-            <div class="grid two-col">
+            <h2>Primary Adult</h2>
+            <div class="grid compact-two">
               <label>
                 Current Age
-                <input type="number" id="currentAge" min="0" max="120" step="1" />
+                <input type="number" id="primaryCurrentAge" min="0" max="120" step="1" />
               </label>
               <label>
                 Retirement Age
-                <input type="number" id="retirementAge" min="0" max="120" step="1" />
-              </label>
-              <label>
-                End Age
-                <input type="number" id="endAge" min="1" max="120" step="1" />
-              </label>
-              <label>
-                Annual Retirement Spending Goal ($)
-                <input type="number" id="annualSpendingGoal" min="0" step="1000" />
+                <input type="number" id="primaryRetirementAge" min="0" max="100" step="1" />
               </label>
             </div>
           </section>
 
+          <section class="card form-section hidden" id="spousePersonalSection">
+            <h2>Spouse</h2>
+            <div class="grid compact-two">
+              <label>
+                Current Age
+                <input type="number" id="spouseCurrentAge" min="0" max="120" step="1" />
+              </label>
+              <label>
+                Retirement Age
+                <input type="number" id="spouseRetirementAge" min="0" max="100" step="1" />
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <div class="dual-grid">
           <section class="card form-section">
-            <h2>401(k)</h2>
-            <div class="grid two-col">
+            <h2>Primary Accounts</h2>
+
+            <h3 class="subsection-title">401(k)</h3>
+            <div class="grid compact-two">
               <label>
-                Current Balance ($)
-                <input type="number" id="k401Balance" min="0" step="1000" />
+                Balance ($)
+                <input type="number" id="primary401kBalance" min="0" step="1000" />
               </label>
               <label>
-                Annual Contribution ($)
-                <input type="number" id="k401Contribution" min="0" step="500" />
+                Contribution ($)
+                <input type="number" id="primary401kContribution" min="0" step="500" />
+              </label>
+            </div>
+
+            <h3 class="subsection-title">IRA</h3>
+            <div class="grid compact-two">
+              <label>
+                Balance ($)
+                <input type="number" id="primaryIraBalance" min="0" step="1000" />
               </label>
               <label>
-                Growth Rate Before Retirement (%)
-                <input type="number" id="k401PreGrowth" step="0.1" />
+                Contribution ($)
+                <input type="number" id="primaryIraContribution" min="0" step="500" />
+              </label>
+            </div>
+
+            <h3 class="subsection-title">Brokerage</h3>
+            <div class="grid compact-two">
+              <label>
+                Balance ($)
+                <input type="number" id="primaryBrokerageBalance" min="0" step="1000" />
               </label>
               <label>
-                Growth Rate After Retirement (%)
-                <input type="number" id="k401PostGrowth" step="0.1" />
+                Contribution ($)
+                <input type="number" id="primaryBrokerageContribution" min="0" step="500" />
               </label>
             </div>
           </section>
 
-          <section class="card form-section">
-            <h2>IRA</h2>
-            <div class="grid two-col">
+          <section class="card form-section hidden" id="spouseAccountsSection">
+            <h2>Spouse Accounts</h2>
+
+            <h3 class="subsection-title">401(k)</h3>
+            <div class="grid compact-two">
               <label>
-                Current Balance ($)
-                <input type="number" id="iraBalance" min="0" step="1000" />
+                Balance ($)
+                <input type="number" id="spouse401kBalance" min="0" step="1000" />
               </label>
               <label>
-                Annual Contribution ($)
-                <input type="number" id="iraContribution" min="0" step="500" />
+                Contribution ($)
+                <input type="number" id="spouse401kContribution" min="0" step="500" />
+              </label>
+            </div>
+
+            <h3 class="subsection-title">IRA</h3>
+            <div class="grid compact-two">
+              <label>
+                Balance ($)
+                <input type="number" id="spouseIraBalance" min="0" step="1000" />
               </label>
               <label>
-                Growth Rate Before Retirement (%)
-                <input type="number" id="iraPreGrowth" step="0.1" />
+                Contribution ($)
+                <input type="number" id="spouseIraContribution" min="0" step="500" />
+              </label>
+            </div>
+
+            <h3 class="subsection-title">Brokerage</h3>
+            <div class="grid compact-two">
+              <label>
+                Balance ($)
+                <input type="number" id="spouseBrokerageBalance" min="0" step="1000" />
               </label>
               <label>
-                Growth Rate After Retirement (%)
-                <input type="number" id="iraPostGrowth" step="0.1" />
+                Contribution ($)
+                <input type="number" id="spouseBrokerageContribution" min="0" step="500" />
               </label>
             </div>
           </section>
+        </div>
 
-          <section class="card form-section">
-            <h2>Brokerage</h2>
-            <div class="grid two-col">
-              <label>
-                Current Balance ($)
-                <input type="number" id="brokerageBalance" min="0" step="1000" />
-              </label>
-              <label>
-                Annual Contribution ($)
-                <input type="number" id="brokerageContribution" min="0" step="500" />
-              </label>
-              <label>
-                Growth Rate Before Retirement (%)
-                <input type="number" id="brokeragePreGrowth" step="0.1" />
-              </label>
-              <label>
-                Growth Rate After Retirement (%)
-                <input type="number" id="brokeragePostGrowth" step="0.1" />
-              </label>
-            </div>
-          </section>
+        <section class="card form-section">
+          <h2>Growth Assumptions</h2>
+          <div class="grid compact-four">
+            <label>
+              401(k) Pre (%)
+              <input type="number" id="k401PreGrowth" step="0.1" />
+            </label>
+            <label>
+              401(k) Post (%)
+              <input type="number" id="k401PostGrowth" step="0.1" />
+            </label>
 
-          <section class="card form-section">
-            <h2>Pension & Social Security</h2>
-            <div class="grid two-col">
-              <label>
-                Monthly Pension ($)
-                <input type="number" id="pensionMonthly" min="0" step="100" />
-              </label>
-              <label>
-                Pension Start Age
-                <input type="number" id="pensionStartAge" min="0" max="120" step="1" />
-              </label>
-              <label>
-                Monthly Social Security ($)
-                <input type="number" id="socialMonthly" min="0" step="100" />
-              </label>
-              <label>
-                Social Security Start Age
-                <input type="number" id="socialStartAge" min="0" max="120" step="1" />
-              </label>
-            </div>
-          </section>
+            <label>
+              IRA Pre (%)
+              <input type="number" id="iraPreGrowth" step="0.1" />
+            </label>
+            <label>
+              IRA Post (%)
+              <input type="number" id="iraPostGrowth" step="0.1" />
+            </label>
 
-          <section class="card form-section">
-            <h2>Retirement Age Optimization</h2>
-            <div class="grid two-col">
-              <label>
-                Test Ages From
-                <input type="number" id="optStartAge" min="0" max="120" step="1" />
-              </label>
-              <label>
-                Test Ages To
-                <input type="number" id="optEndAge" min="0" max="120" step="1" />
-              </label>
-              <label>
-                Minimum Assets at End Age ($)
-                <input type="number" id="minimumEndAssets" min="0" step="1000" />
-              </label>
-              <label>
-                Safety Margin at End Age ($)
-                <input type="number" id="safetyMargin" min="0" step="1000" />
-              </label>
-              <label class="full-width">
-                Recommendation Method
-                <select id="optimizationMethod">
-                  <option value="earliest_feasible">Earliest feasible</option>
-                  <option value="max_end_assets">Maximum end assets</option>
-                  <option value="min_end_assets">Earliest meeting minimum end assets</option>
-                  <option value="safety_margin">Recommended with safety margin</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="withdrawal-note">
-              <p><strong>Earliest feasible:</strong> first age with no shortfall and no depletion.</p>
-              <p><strong>Maximum end assets:</strong> age that leaves the most assets at end age.</p>
-              <p><strong>Minimum end assets:</strong> first age meeting your required ending assets.</p>
-              <p><strong>Safety margin:</strong> first age with no shortfall, no depletion, and ending assets above your safety target.</p>
-            </div>
-
-            <div class="actions">
-              <button type="button" id="findRecommendedBtn" class="btn primary">Find Recommended Age</button>
-              <button type="button" id="applyRecommendedBtn" class="btn secondary">Apply Recommended Age</button>
-            </div>
-
-            <div id="optimizationErrorBox" class="error-box hidden"></div>
-            <div id="optimizationResult" class="optimization-result hidden"></div>
-          </section>
-
-          <section class="card form-section">
-            <h2>Withdrawal Strategy</h2>
-            <div class="withdrawal-note">
-              <p><strong>Default withdrawal order:</strong> Brokerage → IRA → 401(k)</p>
-              <p>Retirement spending gap is automatically funded after pension and Social Security income.</p>
-              <p>Contributions stop at retirement age.</p>
-            </div>
-          </section>
-
-          <section class="actions">
-            <button type="button" id="runBtn" class="btn primary">Run Simulation</button>
-            <button type="button" id="exampleBtn" class="btn">Load Example</button>
-            <button type="button" id="resetBtn" class="btn secondary">Reset</button>
-          </section>
-
-          <div id="errorBox" class="error-box hidden"></div>
-        </form>
-      </div>
-
-      <div class="right-panel">
-        <section class="card">
-          <h2>Summary</h2>
-          <div id="summaryCards" class="summary-grid"></div>
-        </section>
-
-        <section class="card">
-          <h2>Total Portfolio by Age</h2>
-          <div class="chart-wrap">
-            <canvas id="portfolioChart"></canvas>
+            <label>
+              Brokerage Pre (%)
+              <input type="number" id="brokeragePreGrowth" step="0.1" />
+            </label>
+            <label>
+              Brokerage Post (%)
+              <input type="number" id="brokeragePostGrowth" step="0.1" />
+            </label>
           </div>
         </section>
 
-        <section class="card">
-          <h2>Account Balances by Age</h2>
-          <div class="chart-wrap">
-            <canvas id="balancesChart"></canvas>
+        <section class="card form-section">
+          <h2>Pension & Social Security</h2>
+
+          <div class="dual-grid">
+            <div>
+              <h3 class="subsection-title">Primary Income</h3>
+              <div class="grid compact-two">
+                <label>
+                  Pension / month
+                  <input type="number" id="primaryPensionMonthly" min="0" step="100" />
+                </label>
+                <label>
+                  Pension Start Age
+                  <input type="number" id="primaryPensionStartAge" min="0" max="120" step="1" />
+                </label>
+
+                <label>
+                  Social / month
+                  <input type="number" id="primarySocialMonthly" min="0" step="100" />
+                </label>
+                <label>
+                  Social Start Age
+                  <input type="number" id="primarySocialStartAge" min="0" max="120" step="1" />
+                </label>
+              </div>
+            </div>
+
+            <div id="spouseIncomePanel" class="hidden">
+              <h3 class="subsection-title">Spouse Income</h3>
+              <div class="grid compact-two">
+                <label>
+                  Pension / month
+                  <input type="number" id="spousePensionMonthly" min="0" step="100" />
+                </label>
+                <label>
+                  Pension Start Age
+                  <input type="number" id="spousePensionStartAge" min="0" max="120" step="1" />
+                </label>
+
+                <label>
+                  Social / month
+                  <input type="number" id="spouseSocialMonthly" min="0" step="100" />
+                </label>
+                <label>
+                  Social Start Age
+                  <input type="number" id="spouseSocialStartAge" min="0" max="120" step="1" />
+                </label>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section class="card">
-          <h2>Guaranteed Income vs Withdrawals vs Retirement Spending</h2>
-          <div class="chart-wrap">
-            <canvas id="incomeChart"></canvas>
+        <section class="card form-section">
+          <h2>Children</h2>
+          <div class="withdrawal-note">
+            <p><strong>College default:</strong> starts at age 19 and is spread across 4 years.</p>
+            <p><strong>Wedding default:</strong> one-time support at age 30.</p>
+            <p>If children = 0, this section has no impact.</p>
+          </div>
+
+          <div id="childrenContainer" class="children-container hidden"></div>
+        </section>
+
+        <section class="card form-section">
+          <h2>Retirement & Planning</h2>
+          <div class="grid compact-three">
+            <label>
+              Planning End Age
+              <input type="number" id="endAge" min="1" max="120" step="1" />
+            </label>
+            <label>
+              Annual Retirement Spending Goal ($)
+              <input type="number" id="annualSpendingGoal" min="0" step="1000" />
+            </label>
+            <label>
+              Inflation (%)
+              <input type="number" id="inflationRate" min="0" step="0.1" value="3" />
+            </label>
+            <label>
+              401(k) Withdrawal Age
+              <input type="number" id="k401AccessAge" min="0" max="100" step="1" />
+            </label>
           </div>
         </section>
-      </div>
+
+        <section class="card form-section">
+          <h2>Retirement Age Optimization</h2>
+
+          <div class="grid compact-three">
+            <label>
+              Primary From
+              <input type="number" id="optPrimaryStartAge" min="0" max="100" step="1" />
+            </label>
+            <label>
+              Primary To
+              <input type="number" id="optPrimaryEndAge" min="0" max="100" step="1" />
+            </label>
+
+            <label id="spouseOptStartWrap">
+              Spouse From
+              <input type="number" id="optSpouseStartAge" min="0" max="100" step="1" />
+            </label>
+            <label id="spouseOptEndWrap">
+              Spouse To
+              <input type="number" id="optSpouseEndAge" min="0" max="100" step="1" />
+            </label>
+
+            <label>
+              Safety Margin ($)
+              <input type="number" id="safetyMargin" min="0" step="1000" />
+            </label>
+
+            <label>
+              Scope
+              <select id="optimizationScope">
+                <option value="primary">Primary only</option>
+                <option value="both">Both primary and spouse</option>
+              </select>
+            </label>
+
+            <label class="full-width">
+              Recommendation Method
+              <select id="optimizationMethod">
+                <option value="earliest_feasible">Earliest feasible</option>
+                <option value="max_end_assets">Maximum end assets</option>
+                <option value="safety_margin">Recommended with safety margin</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="withdrawal-note">
+            <p><strong>Earliest feasible:</strong> first retirement age or pair with no shortfall and no depletion.</p>
+            <p><strong>Maximum end assets:</strong> among successful results only, choose the retirement age or pair with the most assets remaining at planning end age.</p>
+            <p><strong>Safety margin:</strong> earliest successful retirement age or pair with ending assets above your safety target.</p>
+            <p>If no successful result exists, fallback is: <strong>do not retire in the model</strong>.</p>
+          </div>
+
+          <div class="actions">
+            <button type="button" id="findRecommendedBtn" class="btn primary">Find Recommended Retirement Age</button>
+            <button type="button" id="applyRecommendedBtn" class="btn secondary">Apply Recommended Result</button>
+          </div>
+
+          <div id="optimizationErrorBox" class="error-box hidden"></div>
+          <div id="optimizationResult" class="optimization-result hidden"></div>
+        </section>
+
+        <section class="card form-section">
+          <h2>Withdrawal Strategy</h2>
+          <div class="withdrawal-note">
+            <p><strong>Default withdrawal order:</strong> Brokerage → IRA → 401(k)</p>
+            <p>Retirement starts at retirement age, and contributions stop at retirement age.</p>
+            <p>401(k) withdrawals are only allowed from the penalty-free age assumption entered above.</p>
+          </div>
+        </section>
+
+        <section class="actions">
+          <button type="button" id="runBtn" class="btn primary">Run Simulation</button>
+          <button type="button" id="exampleBtn" class="btn">Load Example</button>
+          <button type="button" id="resetBtn" class="btn secondary">Reset</button>
+        </section>
+
+        <div id="errorBox" class="error-box hidden"></div>
+      </form>
+
+      <section class="card">
+        <h2>Summary</h2>
+        <div id="summaryCards" class="summary-grid"></div>
+      </section>
+
+      <section class="card">
+        <h2>Total Portfolio by Age</h2>
+        <div class="chart-wrap">
+          <canvas id="portfolioChart"></canvas>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Account Balances by Age</h2>
+        <div class="chart-wrap">
+          <canvas id="balancesChart"></canvas>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Income vs Withdrawals vs Spending Need</h2>
+        <div class="chart-wrap">
+          <canvas id="incomeChart"></canvas>
+        </div>
+      </section>
     </section>
 
     <section class="card results-section">
@@ -248,7 +396,9 @@
               <th>Pension</th>
               <th>Social</th>
               <th>Guaranteed Income</th>
-              <th>Spending Goal</th>
+              <th>Base Spending</th>
+              <th>Child Events</th>
+              <th>Total Need</th>
               <th>Brokerage Withdrawal</th>
               <th>IRA Withdrawal</th>
               <th>401(k) Withdrawal</th>
@@ -258,6 +408,7 @@
               <th>IRA End</th>
               <th>Brokerage End</th>
               <th>Total Assets End</th>
+              <th>Event Details</th>
             </tr>
           </thead>
           <tbody id="resultsTableBody"></tbody>
@@ -268,7 +419,7 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>Built for GitHub Pages • All amounts shown in USD • Version 1 excludes taxes and inflation</p>
+      <p>Built for GitHub Pages • All amounts shown in USD • Version 3 excludes taxes, inflation, and exact IRS rule details</p>
     </div>
   </footer>
 
